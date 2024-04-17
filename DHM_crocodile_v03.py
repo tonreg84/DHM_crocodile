@@ -1,7 +1,6 @@
 """
 DHM crocodile
- Autor: Gernot Scheerer, team UMI, CNP-CHUV Lausanne
- gernot.scheerer@hotmail.de
+ Autor: tonreg, team UMI, CNP-CHUV Lausanne
  
  Version 03 - 16.04.2024
 
