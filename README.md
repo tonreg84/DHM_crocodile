@@ -1,1 +1,12 @@
-# DHM_crocodile
+DHM crocodile
+ Autor: tonreg, team UMI, CNP-CHUV Lausanne
+ 
+ Version 03 - 16.04.2024
+
+ This program is used to reduce the number of holograms recorded during an experience with a LynceeTec DHM.
+ 
+ The program will reduce the frame rate by the given factor RFR (integer greater than 1).
+ The program will average over a given number of holograms (NAV, positive integer).
+ You can chose RFR and NAV and if the initial hologram files will be overwritten or if the new ones will be saved in a new folder.
+ The new frame rate equals the initial frame rate divided by RFR.
+ The program creates a new timestamps file where the timestamps correspond to the new frame rate. A new timestamp "n" corresponds to the intial timestamp n*RFR+int(NAV/2) (n=0,1,2,...).
