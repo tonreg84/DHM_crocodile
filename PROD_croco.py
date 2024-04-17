@@ -1,11 +1,4 @@
 def PROD_croco(infolder,outfolder,overwrite_check,timestampsfile,RFR,NAV):
-# this procedure is part of the program DHM crocodile 
-
-#  Autor: Gernot Scheerer, team UMI, CNP-CHUV Lausanne
-#  gernot.scheerer@hotmail.de
- 
-#  Version 03 - 16.04.2024
-
 #infolder: string, hologram folder
 #outfolder: string, target folder for averaged holograms
 #overwrite_check: boolean, if True -> initial holograms will be overwritten
