@@ -1,18 +1,20 @@
-def PROD_croco(infolder,outfolder,overwrite_check,timestampsfile,RFR,NAV):
+def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
+# this procedure is part of the program DHM crocodile v04
+
 #infolder: string, hologram folder
 #outfolder: string, target folder for averaged holograms
-#overwrite_check: boolean, if True -> initial holograms will be overwritten
-#timestampsfile: string, location of the initial timestamps file
+#overwrite: boolean, if True -> initial holograms will be overwritten
+#timestampsfile: string, location of the original timestamps file
 #RFR: integer greater than 1; The program will reduce the frame rate by the given factor RFR.
 #NAV: positive integer; The program will average over a given number NAV of holograms.
-
+    import time as tttime
     from tifffile import imread
     from tifffile import imsave
     import os
     import numpy
-    from PySimpleGUI import ProgressBar
-    from PySimpleGUI import Text
-    from PySimpleGUI import Window
+    
+    from tkinter import ttk, Toplevel, DoubleVar, Label, StringVar
+    import threading
     
     #read timestamps from timestampsfile
     with open(timestampsfile, 'r') as infile:
@@ -63,67 +65,88 @@ def PROD_croco(infolder,outfolder,overwrite_check,timestampsfile,RFR,NAV):
             fileID.write(TSstr_new)
     fileID.close()
     
-    #Progress bar
     if NAV<=RFR:
         images_to_process=int(nImages/RFR)*RFR
     else:
         images_to_process=nImages_new*NAV
     
-    ProgLayout = [
-        [ProgressBar(images_to_process, orientation='h', expand_x=True, size=(30, 10),  key='prog')],
-        [Text('Holos crocodiled: 0 of '+str(images_to_process), key='out', enable_events=True, font=('Arial Bold', 16), justification='center', expand_x=True)]
-    ]
-    progwin = Window('Crocodile\'s lunch progress', ProgLayout, size=(450, 75), finalize=True)
-    event, values = progwin.read(timeout=500)
+    #Progress bar
+    # Function to update the progress bar 
+    def update_progress_bar():
     
-    #averaging the holograms
-    for k in range(nImages_new):
-        holo_check=True
-        
-        if NAV<=RFR:
-            for i in range(RFR):
-                input_file_path=infolder+'/'+str(k*RFR+i).rjust(5, '0')+'_holo.tif'
-                
-                if i+1 <= NAV:
+        #averaging the holograms
+        for k in range(nImages_new):
+            holo_check=True
+            
+            if NAV<=RFR:
+                for i in range(RFR):
+                    input_file_path=infolder+'/'+str(k*RFR+i).rjust(5, '0')+'_holo.tif'
+                    
+                    if i+1 <= NAV:
+                        if holo_check==True:
+                            holo=imread(input_file_path, key=0).astype(float)
+                            holo_check=False
+                        else:
+                            holo=holo+imread(input_file_path, key=0).astype(float)
+                    
+                    if overwrite==True:
+                        os.remove(input_file_path)
+                    
+                    progress_var.set(k*RFR+i+1)  # Update progress bar value
+                    labelvar.set('Holos crocodiled: '+str(k*RFR+i+1)+' of '+str(images_to_process))
+                    tttime.sleep(.5)
+                    
+            else:
+                for i in range(NAV):
+                    input_file_path=infolder+'/'+str(k*RFR+i).rjust(5, '0')+'_holo.tif'
+                    
                     if holo_check==True:
                         holo=imread(input_file_path, key=0).astype(float)
                         holo_check=False
                     else:
                         holo=holo+imread(input_file_path, key=0).astype(float)
-                
-                if overwrite_check==True:
-                    os.remove(input_file_path)
-                                
-                progwin['prog'].update(current_count=k*RFR+i+1)
-                progwin['out'].update('Holos crocodiled: '+str(k*RFR+i+1)+' of '+str(images_to_process))
-                
-        else:
-            for i in range(NAV):
-                input_file_path=infolder+'/'+str(k*RFR+i).rjust(5, '0')+'_holo.tif'
-                
-                if holo_check==True:
-                    holo=imread(input_file_path, key=0).astype(float)
-                    holo_check=False
-                else:
-                    holo=holo+imread(input_file_path, key=0).astype(float)
-                
-                if overwrite_check==True and i <= RFR-1:
-                    os.remove(input_file_path)
-
-                progwin['prog'].update(current_count=k*NAV+i+1)
-                progwin['out'].update('Holos crocodiled: '+str(k*NAV+i+1)+' of '+str(images_to_process))
+                        
+                    if overwrite==True and i <= RFR-1:
+                        os.remove(input_file_path)
+                        
+                    progress_var.set(k*NAV+i+1)  # Update progress bar value
+                    labelvar.set('Holos crocodiled: '+str(k*NAV+i+1)+' of '+str(images_to_process))
+                    tttime.sleep(.5)
+            holo=holo/NAV
             
-        holo=holo/NAV
-        
-        hoholo=numpy.uint8(numpy.round(holo, decimals = 0, out = None))
-
-        output_file_path=outfolder+'/'+str(k).rjust(5, '0')+'_holo_new.tif'
-        
-        imsave(output_file_path, hoholo, compression=1, append=True, bitspersample=8, planarconfig=1)
+            hoholo=numpy.uint8(numpy.round(holo, decimals = 0, out = None))
     
-    if overwrite_check==True:
-        for j in range(RFR*nImages_new,nImages):
-            input_file_path=infolder+'/'+str(j).rjust(5, '0')+'_holo.tif'
-            os.remove(input_file_path)
+            output_file_path=outfolder+'/'+str(k).rjust(5, '0')+'_holo_new.tif'
+            
+            imsave(output_file_path, hoholo, compression=1, append=True, bitspersample=8, planarconfig=1)
+        
+        if overwrite==True:
+            for j in range(RFR*nImages_new,nImages):
+                input_file_path=infolder+'/'+str(j).rjust(5, '0')+'_holo.tif'
+                os.remove(input_file_path)
+                
+        progress_window.destroy() 
+        
+    # Create a new window for the progress bar
+    progress_window = Toplevel(master)
+    progress_window.geometry("350x100")
+    progress_window.title("Crocodile\'s lunch progress")
     
-    progwin.close()
+    # Create a progress bar widget
+    progress_var = DoubleVar()
+    progress_bar = ttk.Progressbar(progress_window, maximum=nImages, variable=progress_var)
+    progress_bar.place(x=50, y=30, width=250) 
+    
+    # Show progress as text
+    labelvar = StringVar()
+    labelvar.set('Holos crocodiled: 0 of '+str(images_to_process))
+    progress_label = Label(progress_window, textvariable=labelvar)
+    progress_label.place(x=50, y=60)
+    
+    # Run the update in a separate thread to avoid blocking the main thread
+    threading.Thread(target=update_progress_bar).start()
+    
+    progress_window.protocol("WM_DELETE_WINDOW", lambda: None)  # Disable closing the window using the close button
+    progress_window.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+    progress_window.grab_set()
+    master.wait_window(progress_window)
