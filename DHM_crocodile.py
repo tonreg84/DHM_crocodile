@@ -1,8 +1,8 @@
 """
 DHM crocodile
 Autor: tonreg, team UMI, CNP-CHUV Lausanne
- 
-Version 04 - 04.06.2024
+
+Version 04 - 10.09.2024
 
 This program is used to reduce the number of holograms recorded during an experience with a LynceeTec DHM.
  
@@ -63,7 +63,7 @@ def update_display(event):
         RFR=RFR_entry.get()
         if RFR.isdigit()==True and RFR!='0':
             if int(RFR)<=sequence_length:
-                displaytext_RFR='\nTarget frame rate = '+str( round(framerate*int(RFR),2) )
+                displaytext_RFR='\nTarget frame rate = '+str(round(framerate*int(RFR),2)) +" seconds per frame"
                 displaytext_new_N ='\nTarget sequence length = '+str(int(sequence_length/int(RFR)))
             else:
                 RFR_entry.delete(0,tk.END)
@@ -74,7 +74,7 @@ def update_display(event):
         #create string "display number of holos to average (NAV)"; if NAV is > sequence_length, set NAV=sequence_length
         NAV=NAV_entry.get()
         if NAV.isdigit()==True and NAV!='0':
-            if int(NAV)>int(sequence_length):
+            if int(NAV)>sequence_length:
                 NAV_entry.delete(0,tk.END)
                 NAV_entry.insert(0,sequence_length)
                 displaytext_NAV='\nNumber of holos to average cannot be greater than sequence length.'
@@ -86,7 +86,19 @@ def update_display(event):
                         displaytext_NAV='\nAverage over '+NAV+' holograms'
                     else:
                         displaytext_NAV='\nAverage over '+NAV+' holograms'
-                        displaytext_new_N ='\nTarget sequence length = '+str(int(sequence_length/int(RFR))-int(int(NAV)/int(RFR))+1)
+                        
+                        rfr=int(RFR)
+                        nav=int(NAV)
+                        x=sequence_length-int(sequence_length/rfr)*rfr
+
+                        y=nav-int(nav/rfr)*rfr
+                        
+                        if y<=x:
+                            nImages_new=int(sequence_length/rfr)-int(nav/rfr)+1
+                        else:
+                            nImages_new=int(sequence_length/rfr)-int(nav/rfr)
+                        
+                        displaytext_new_N ='\nTarget sequence length = '+str(nImages_new)
      
                 else:
                     displaytext_NAV='\nAverage over '+NAV+' holograms'
@@ -123,11 +135,11 @@ def save_time_file():
      
         if framerate < 1:
             roundFrate=round(framerate, 2)
-            tsstring=tsstring+'...\n\nSequence length = '+str(sequence_length)+'\n\nFrame rate = '+str(roundFrate)+' milliseconds'
+            tsstring=tsstring+'...\n\nSequence length = '+str(sequence_length)+'\n\nFrame rate = '+str(roundFrate)+' milliseconds per frame'
         else:
             framerate=time/(sequence_length-1)/1000
             roundFrate=round(framerate, 2)
-            tsstring=tsstring+'...\n\nSequence length = '+str(sequence_length)+'\n\nFrame rate = '+str(roundFrate)+' seconds' 
+            tsstring=tsstring+'...\n\nSequence length = '+str(sequence_length)+'\n\nFrame rate = '+str(roundFrate)+' seconds per frame' 
     
     event=''
     update_display(event)
@@ -163,11 +175,15 @@ def start():
             RFR=RFR_entry.get()
             if RFR.isdigit()==False or RFR=='0':
                 tk.messagebox.showinfo('Error', 'The entry for the frame rate reduction factor must be a positive integer!')
+                RFR_entry.delete(0,tk.END)
+                RFR_entry.insert(0,"1")
             else:
                 #now check if the number of holograms to average well a postitive integer
                 NAV=NAV_entry.get()
                 if NAV.isdigit()==False or NAV=='0':
                     tk.messagebox.showinfo('Error', 'The entry for holograms to average must be a positive integer!')
+                    NAV_entry.delete(0,tk.END)
+                    NAV_entry.insert(0,"1")
                 else:
                     #now check if output option is selected
                     if Vover.get() == False and Vnew.get() == False:
@@ -225,8 +241,10 @@ time_button = tk.Button(FP_frame, text="Chose the corresponding timestamps file"
 
 RFR_label = tk.Label(FP_frame, text= "Reduce frame rate by factor")
 RFR_entry = tk.Entry(FP_frame,width=10)
+RFR_entry.insert(0,"1")
 NAV_label = tk.Label(FP_frame, text= "Averaging over")
 NAV_entry = tk.Entry(FP_frame,width=10)
+NAV_entry.insert(0,"1")
 NAVV_label= tk.Label(FP_frame, text= "holograms")
 
 RFR_entry.bind("<KeyRelease>", update_display)
@@ -281,3 +299,18 @@ exit_button.grid(row=2, column=1, padx=5, pady=5, sticky='n,e')
 root.mainloop()
 
 ###########################################
+
+
+                            
+            
+            
+        
+        
+        
+        
+        
+        
+        
+        
+
+    
