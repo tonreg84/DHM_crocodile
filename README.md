@@ -1,7 +1,7 @@
 DHM crocodile
 Autor: tonreg, team UMI, CNP-CHUV Lausanne
  
-Version 04 - 04.06.2024
+Version 04 - 10.09.2024
 
 This program is used to reduce the number of holograms recorded during an experience with a LynceeTec DHM.
  
