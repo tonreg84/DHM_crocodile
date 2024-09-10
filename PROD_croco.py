@@ -47,7 +47,9 @@ def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
             nImages_new=int(nImages/RFR)-int(NAV/RFR)+1
         else:
             nImages_new=int(nImages/RFR)-int(NAV/RFR)
-        
+    
+    print("New sequence length:", nImages_new)    
+    
     #create list of new timestamps and write new timestamps to text file
     tsf_name, tsf_extension = os.path.splitext(timestampsfile)
     new_timestampsfile=tsf_name+'_new.txt'
@@ -65,11 +67,6 @@ def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
             fileID.write(TSstr_new)
     fileID.close()
     
-    if NAV<=RFR:
-        images_to_process=int(nImages/RFR)*RFR
-    else:
-        images_to_process=nImages_new*NAV
-    
     #Progress bar
     # Function to update the progress bar 
     def update_progress_bar():
@@ -78,40 +75,20 @@ def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
         for k in range(nImages_new):
             holo_check=True
             
-            if NAV<=RFR:
-                for i in range(RFR):
-                    input_file_path=infolder+'/'+str(k*RFR+i).rjust(5, '0')+'_holo.tif'
-                    
-                    if i+1 <= NAV:
-                        if holo_check==True:
-                            holo=imread(input_file_path, key=0).astype(float)
-                            holo_check=False
-                        else:
-                            holo=holo+imread(input_file_path, key=0).astype(float)
-                    
-                    if overwrite==True:
-                        os.remove(input_file_path)
-                    
-                    progress_var.set(k*RFR+i+1)  # Update progress bar value
-                    labelvar.set('Holos crocodiled: '+str(k*RFR+i+1)+' of '+str(images_to_process))
-                    tttime.sleep(.5)
-                    
-            else:
-                for i in range(NAV):
-                    input_file_path=infolder+'/'+str(k*RFR+i).rjust(5, '0')+'_holo.tif'
-                    
+            for i in range(NAV):
+                input_file_path=infolder+'/'+str(k*RFR+i).rjust(5, '0')+'_holo.tif'
+                
+                if i+1 <= NAV:
                     if holo_check==True:
                         holo=imread(input_file_path, key=0).astype(float)
                         holo_check=False
                     else:
                         holo=holo+imread(input_file_path, key=0).astype(float)
-                        
-                    if overwrite==True and i <= RFR-1:
-                        os.remove(input_file_path)
-                        
-                    progress_var.set(k*NAV+i+1)  # Update progress bar value
-                    labelvar.set('Holos crocodiled: '+str(k*NAV+i+1)+' of '+str(images_to_process))
-                    tttime.sleep(.5)
+                
+            progress_var.set(k*RFR)  # Update progress bar value
+            labelvar.set('Holos crocodiled: '+str(k*RFR)+' of '+str(nImages))
+            tttime.sleep(.5)
+                              
             holo=holo/NAV
             
             hoholo=numpy.uint8(numpy.round(holo, decimals = 0, out = None))
@@ -120,11 +97,18 @@ def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
             
             imsave(output_file_path, hoholo, compression=1, append=True, bitspersample=8, planarconfig=1)
         
+            if overwrite==True:
+                for j in range(RFR):
+                    file_path=infolder+'/'+str(k*RFR+j).rjust(5, '0')+'_holo.tif'
+                    os.remove(file_path)
+                    print("Holo removed:", file_path)
+                    
         if overwrite==True:
-            for j in range(RFR*nImages_new,nImages):
-                input_file_path=infolder+'/'+str(j).rjust(5, '0')+'_holo.tif'
-                os.remove(input_file_path)
-                
+            for i in range(nImages_new*RFR,nImages):
+                file_path=infolder+'/'+str(i).rjust(5, '0')+'_holo.tif'
+                os.remove(file_path)
+                print("Holo removed:", file_path)
+            
         progress_window.destroy() 
         
     # Create a new window for the progress bar
@@ -139,7 +123,7 @@ def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
     
     # Show progress as text
     labelvar = StringVar()
-    labelvar.set('Holos crocodiled: 0 of '+str(images_to_process))
+    labelvar.set('Holos crocodiled: 0 of '+str(nImages))
     progress_label = Label(progress_window, textvariable=labelvar)
     progress_label.place(x=50, y=60)
     
