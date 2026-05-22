@@ -22,6 +22,60 @@ from PROD_croco import PROD_croco
 from numpy import single
 from numpy import array
 
+
+def chose_output_option(master):
+    
+    outputstring = "cancel"
+
+    def overwriteX():    
+        nonlocal outputstring
+        outputstring = "overwrite"
+        window.destroy()
+    
+    def newfolderX():    
+        nonlocal outputstring
+        outputstring = "newfolder"
+        window.destroy()
+    
+    def cancel():
+        nonlocal outputstring
+        outputstring = "cancel"
+        window.destroy()
+    
+    ################################################################
+    # define the GUI window and it's layout
+    
+    window = tk.Toplevel(master)
+    window.geometry("300x300")
+    window.title('-_-')
+    
+    ###################################
+    # define the widgets:
+        
+    label = tk.Label(window, text= 'You have to chose an output option:')
+    label.pack()
+    
+    stackbutton = tk.Button(window, text='Overwrite initial holograms', command=overwriteX)
+    stackbutton.pack()
+    
+    stackbutton = tk.Button(window, text='Write into new folder', command=newfolderX)
+    stackbutton.pack(pady=5)
+    
+    stackbutton = tk.Button(window, text='Cancel', command=cancel)
+    stackbutton.pack(pady=5)
+
+    ##################################
+    # some tkinter window configuration:
+        
+    window.protocol("WM_DELETE_WINDOW", cancel)
+    window.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+    window.grab_set()
+    master.wait_window(window)
+
+    return(outputstring)
+
+
+
 #initialise some variables
 sequence_length=''
 framerate=None
@@ -40,11 +94,13 @@ def exitprog(root):
 with open('info.txt') as f:
     infotext=f.read()
 f.close()
+
 def show_info():
     with open('info.txt') as f:
         infotext=f.read()
     f.close()
     tk.messagebox.showinfo("Info", infotext)
+    
 def save_in_folder():
     global in_folder
     in_folder=tk.filedialog.askdirectory(parent=root, title="Chose a folder with holograms")
@@ -186,45 +242,55 @@ def start():
                     NAV_entry.insert(0,"1")
                 else:
                     #now check if output option is selected
+                    outputoption = "cancel"
                     if Vover.get() == False and Vnew.get() == False:
-                        tk.messagebox.showinfo('Error', 'No output folder option chosen.')
+                        # print('Error', 'No output folder option chosen.')
+                        outputoption = chose_output_option(root)
                     else:
-                        if Vover.get() == True:
-                            
-                            result = tk.messagebox.askquestion('Overwrite holos?', 'Are you sure that you want to overwrite the intial holograms?')
-                            if result == 'yes':
-                                #call the croco proceedure with input overwrite = True
-                                PROD_croco(in_folder,in_folder,True,time_file,int(RFR),int(NAV),root)
+                        if Vover.get():
+                            outputoption = "overwrite"
+                        elif Vnew.get():
+                            outputoption = "newfolder"
+                    
+                    if outputoption == "overwrite":
+                        result = tk.messagebox.askquestion('Overwrite holos?', 'Are you sure that you want to overwrite the intial holograms?')
+                        if result == 'yes':
+                            #call the croco proceedure with input overwrite = True
+                            PROD_croco(in_folder,in_folder,True,time_file,int(RFR),int(NAV),root)
+                    
+                    elif outputoption == "newfolder":
                         
+                        #suggest a folder for option "Write into new folder" if input folder is choosen
+                        if in_folder != '' and new_entry.get() == "":
+                            new_entry.insert(0,in_folder+'_averaged')
+                        
+                        #check if a new folder is chosen correctly
+                        if new_entry.get() =='':
+                            tk.messagebox.showinfo('Error', 'No output folder chosen.')
                         else:
-                            #check if a new folder is chosen correctly
-                            if new_entry.get() =='':
-                                tk.messagebox.showinfo('Error', 'No output folder chosen.')
-                            else:
-                                #check if outputfolder exists aready
-                                if os.path.isdir(new_entry.get())==True:
-                                    result2 = tk.messagebox.askquestion('Output folder exits already!', 'Output folder exits already.\nDo you want to proceed?')
-                                    if result2 == "yes":
-                                        if new_entry.get() == in_folder:
-                                            tk.messagebox.showinfo('Error', 'Input and output folder are identic, please select another folder.')
-                                        else:
-                                            #check if outputfolder is empty
-                                            if len(os.listdir(new_entry.get())) != 0:
-                                                result3=tk.messagebox.askquestion('Output folder is not empty!', 'Output folder is not empty.\nDo you want to proceed?')
-                                                if result3 == "yes":
-                                                    #new folder exists, not empty
-                                                    #call the croco proceedure with input overwrite = False
-                                                    PROD_croco(in_folder,new_entry.get(),False,time_file,int(RFR),int(NAV),root)
-                                            else:
-                                                #new folder exists, empty
+                            #check if outputfolder exists aready
+                            if os.path.isdir(new_entry.get())==True:
+                                result2 = tk.messagebox.askquestion('Output folder exits already!', 'Output folder exits already.\nDo you want to proceed?')
+                                if result2 == "yes":
+                                    if new_entry.get() == in_folder:
+                                        tk.messagebox.showinfo('Error', 'Input and output folder are identic, please select another folder.')
+                                    else:
+                                        #check if outputfolder is empty
+                                        if len(os.listdir(new_entry.get())) != 0:
+                                            result3=tk.messagebox.askquestion('Output folder is not empty!', 'Output folder is not empty.\nDo you want to proceed?')
+                                            if result3 == "yes":
+                                                #new folder exists, not empty
                                                 #call the croco proceedure with input overwrite = False
                                                 PROD_croco(in_folder,new_entry.get(),False,time_file,int(RFR),int(NAV),root)
-                            
-                                else: 
-                                    #new folder doesnt exists, create it
-                                    #call the croco proceedure with input overwrite = False
-                                    os.mkdir(new_entry.get())
-                                    PROD_croco(in_folder,new_entry.get(),False,time_file,int(RFR),int(NAV),root)
+                                        else:
+                                            #new folder exists, empty
+                                            #call the croco proceedure with input overwrite = False
+                                            PROD_croco(in_folder,new_entry.get(),False,time_file,int(RFR),int(NAV),root)
+                            else: 
+                                #new folder doesnt exists, create it
+                                #call the croco proceedure with input overwrite = False
+                                os.mkdir(new_entry.get())
+                                PROD_croco(in_folder,new_entry.get(),False,time_file,int(RFR),int(NAV),root)
 
 #create main window
 root = tk.Tk()

@@ -93,16 +93,15 @@ def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
             
             hoholo=numpy.uint8(numpy.round(holo, decimals = 0, out = None))
     
-            output_file_path=outfolder+'/'+str(k).rjust(5, '0')+'_holo_new.tif'
-            
-            imsave(output_file_path, hoholo, compression=1, append=True, bitspersample=8, planarconfig=1)
-        
             if overwrite==True:
                 for j in range(RFR):
                     file_path=infolder+'/'+str(k*RFR+j).rjust(5, '0')+'_holo.tif'
                     os.remove(file_path)
                     print("Holo removed:", file_path)
-                    
+            
+            output_file_path=outfolder+'/'+str(k).rjust(5, '0')+'_holo.tif'
+            imsave(output_file_path, hoholo, compression=1, append=True, bitspersample=8, planarconfig=1)
+            
         if overwrite==True:
             for i in range(nImages_new*RFR,nImages):
                 file_path=infolder+'/'+str(i).rjust(5, '0')+'_holo.tif'
