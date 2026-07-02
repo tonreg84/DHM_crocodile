@@ -1,4 +1,4 @@
-def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
+def PROD_croco(infolder,outfolder,FileType,overwrite,timestampsfile,RFR,NAV,master):
 # this procedure is part of the program DHM crocodile v04
 
 #infolder: string, hologram folder
@@ -12,6 +12,7 @@ def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
     from tifffile import imsave
     import os
     import numpy
+    import binkoala
     
     from tkinter import ttk, Toplevel, DoubleVar, Label, StringVar
     import threading
@@ -76,37 +77,75 @@ def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
             holo_check=True
             
             for i in range(NAV):
-                input_file_path=infolder+'/'+str(k*RFR+i).rjust(5, '0')+'_holo.tif'
+                
+                if FileType == "holograms":
+                    input_file_path=infolder+'/'+str(k*RFR+i).rjust(5, '0')+'_holo.tif'
+                elif FileType == "bin-files":
+                    input_file_path=infolder+'/'+str(k*RFR+i).rjust(5, '0')+'_phase.bin'
                 
                 if i+1 <= NAV:
                     if holo_check==True:
-                        holo=imread(input_file_path, key=0).astype(float)
+                        
+                        if FileType == "holograms":
+                            holo=imread(input_file_path, key=0).astype(float)
+                        elif FileType == "bin-files":
+                            (holo,in_file_header)=binkoala.read_mat_bin(input_file_path)
+                            hv=in_file_header['version'][0]
+                            end=in_file_header['endian'][0]
+                            hz=in_file_header['head_size'][0]
+                            w=in_file_header['width'][0]
+                            h=in_file_header['height'][0]
+                            pz=in_file_header['px_size'][0]
+                            hconv=in_file_header['hconv'][0]
+                            uc=in_file_header['unit_code'][0]
+                        
                         holo_check=False
                     else:
-                        holo=holo+imread(input_file_path, key=0).astype(float)
+                        
+                        if FileType == "holograms":
+                            holo2=imread(input_file_path, key=0).astype(float)
+                        elif FileType == "bin-files":
+                            (holo2,in_file_header)=binkoala.read_mat_bin(input_file_path)
+
+                        holo=holo+holo2
                 
             progress_var.set(k*RFR)  # Update progress bar value
-            labelvar.set('Holos crocodiled: '+str(k*RFR)+' of '+str(nImages))
+            labelvar.set('Files crocodiled: '+str(k*RFR)+' of '+str(nImages))
             tttime.sleep(.5)
                               
             holo=holo/NAV
             
-            hoholo=numpy.uint8(numpy.round(holo, decimals = 0, out = None))
+            if FileType == "holograms":
+                hoholo=numpy.uint8(numpy.round(holo, decimals = 0, out = None))
+            else:
+                hoholo = holo
     
             if overwrite==True:
                 for j in range(RFR):
-                    file_path=infolder+'/'+str(k*RFR+j).rjust(5, '0')+'_holo.tif'
+                    
+                    if FileType == "holograms":
+                        file_path=infolder+'/'+str(k*RFR+j).rjust(5, '0')+'_holo.tif'
+                    elif FileType == "bin-files":
+                        file_path=infolder+'/'+str(k*RFR+j).rjust(5, '0')+'_phase.bin'
+
                     os.remove(file_path)
-                    print("Holo removed:", file_path)
+                    print("File removed:", file_path)
             
-            output_file_path=outfolder+'/'+str(k).rjust(5, '0')+'_holo.tif'
-            imsave(output_file_path, hoholo, compression=1, append=True, bitspersample=8, planarconfig=1)
+            if FileType == "holograms":
+                output_file_path=outfolder+'/'+str(k).rjust(5, '0')+'_holo.tif'
+                imsave(output_file_path, hoholo, compression=1, append=True, bitspersample=8, planarconfig=1)
+            elif FileType == "bin-files":
+                output_file_path=outfolder+'/'+str(k).rjust(5, '0')+'_phase.bin'
+                binkoala.write_mat_bin(output_file_path, hoholo, w, h, pz, hconv, unit_code=1)
             
         if overwrite==True:
             for i in range(nImages_new*RFR,nImages):
-                file_path=infolder+'/'+str(i).rjust(5, '0')+'_holo.tif'
+                if FileType == "holograms":
+                    file_path=infolder+'/'+str(i).rjust(5, '0')+'_holo.tif'
+                elif FileType == "bin-files":
+                    file_path=infolder+'/'+str(i).rjust(5, '0')+'_phase.bin'
                 os.remove(file_path)
-                print("Holo removed:", file_path)
+                print("File removed:", file_path)
             
         progress_window.destroy() 
         
@@ -122,7 +161,7 @@ def PROD_croco(infolder,outfolder,overwrite,timestampsfile,RFR,NAV,master):
     
     # Show progress as text
     labelvar = StringVar()
-    labelvar.set('Holos crocodiled: 0 of '+str(nImages))
+    labelvar.set('Files crocodiled: 0 of '+str(nImages))
     progress_label = Label(progress_window, textvariable=labelvar)
     progress_label.place(x=50, y=60)
     
